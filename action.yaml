@@ -1,0 +1,66 @@
+name: 'Aqua Security Trivy installer'
+description: 'Install Trivy binary from release page'
+author: 'Aqua Security'
+
+inputs:
+  version:
+    description: 'Trivy version to install'
+    required: false
+    default: 'latest'
+  cache:
+    description: 'Used to specify whether caching is needed. Set to false, if you would like to disable caching.'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    # All objects must be lowercase:
+    # https://github.com/jaxxstorm/action-install-gh-release/issues/71#issuecomment-1780893687
+    - name: Set platform name
+      id: set-platform
+      shell: bash
+      run: |
+        lowercase_repo=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
+        echo "PLATFORM=${lowercase_repo}" >> $GITHUB_OUTPUT
+
+    # All objects must be lowercase:
+    # https://github.com/jaxxstorm/action-install-gh-release/issues/71#issuecomment-1780893687
+    - name: Set arch name
+      id: set-arch
+      shell: bash
+      run: |
+        if [ "${{ runner.arch }}" == "X86" ]; then
+          echo "ARCH=32bit" >> $GITHUB_OUTPUT
+        elif [ "${{ runner.arch }}" == "X64" ]; then
+          echo "ARCH=64bit" >> $GITHUB_OUTPUT
+        elif [ "${{ runner.arch }}" == "ARM" ]; then
+          echo "ARCH=arm" >> $GITHUB_OUTPUT
+        elif [ "${{ runner.arch }}" == "ARM64" ]; then
+          echo "ARCH=arm64" >> $GITHUB_OUTPUT
+        else
+          echo "Unsupported architecture"
+          exit 1
+        fi
+
+    # jaxxstorm/action-install-gh-release uses `cache: enable` instead of boolean value
+    - name: Enable cache
+      id: enable-cache
+      shell: bash
+      run: |
+        if [ "${{ inputs.cache }}" == "true" ]; then
+          if [ "${{ inputs.version }}" == "latest" ]; then
+            echo "Trivy binaries caching for 'latest' tag is not supported"
+          else
+            echo "CACHE=enable" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    - name: Install Trivy
+      uses: jaxxstorm/action-install-gh-release@v1.10.0
+      with:
+        repo: aquasecurity/trivy
+        tag: ${{ inputs.version }}
+        platform: ${{ steps.set-platform.outputs.PLATFORM }}
+        arch: ${{ steps.set-arch.outputs.ARCH }}
+        cache: ${{ steps.enable-cache.outputs.CACHE }}
