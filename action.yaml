@@ -10,7 +10,7 @@ inputs:
   cache:
     description: 'Used to specify whether caching is needed. Set to false, if you would like to disable caching.'
     required: false
-    default: 'true'
+    default: 'false'
 
 runs:
   using: 'composite'
