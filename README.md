@@ -7,7 +7,7 @@ Set up your GitHub Actions workflow with a specific version of [Trivy](https://g
 # ...
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@main
+    uses: aquasecurity/setup-trivy@v0.1.0
 ```
 
 ## Install a specific Trivy version
@@ -15,7 +15,7 @@ steps:
 # ...
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@main
+    uses: aquasecurity/setup-trivy@v0.1.0
     with:
       version: v0.56.1
 ```
@@ -30,7 +30,7 @@ If you want to enable caching, set the `cache` input to `true` and specify the `
 ```yaml
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@main
+    uses: aquasecurity/setup-trivy@v0.1.0
     with:
       version: v0.56.1
       cache: true
