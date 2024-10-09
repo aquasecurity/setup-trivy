@@ -48,8 +48,8 @@ runs:
       id: enable-cache
       shell: bash
       run: |
-        if [ "${{ input.cache }}" == "true" ]; then
-          if [ "${{ input.version }}" == "latest" ]; then
+        if [ "${{ inputs.cache }}" == "true" ]; then
+          if [ "${{ inputs.version }}" == "latest" ]; then
             echo "Trivy binaries caching for `latest` tag is not supported"
           else
             echo "CACHE=enable" >> $GITHUB_OUTPUT
