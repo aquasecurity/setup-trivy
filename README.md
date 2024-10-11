@@ -41,7 +41,7 @@ steps:
 ```
 
 ### Custom path to Trivy binary
-`action/cache` doesn't support absolute `path` (see [here](https://github.com/actions/cache/issues/1455) for more details).
+`action/cache` doesn't support absolute `path` for Windows runners (see [here](https://github.com/actions/cache/issues/1455) for more details).
 
 To enable caching for Windows runner or if you need to change the Trivy installation directory for other reasons - use `path` input.
 
