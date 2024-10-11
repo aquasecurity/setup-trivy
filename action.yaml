@@ -7,6 +7,10 @@ inputs:
     description: 'Trivy version to install'
     required: false
     default: 'latest'
+  path:
+    description: 'Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir ("$HOME/.local/bin/trivy-bin" by default)'
+    required: false
+    default: '$HOME/.local/bin'
   cache:
     description: 'Used to specify whether caching is needed. Set to false, if you would like to disable caching.'
     required: false
@@ -15,52 +19,46 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # All objects must be lowercase:
-    # https://github.com/jaxxstorm/action-install-gh-release/issues/71#issuecomment-1780893687
-    - name: Set platform name
-      id: set-platform
+    - name: Binary dir
+      id: binary-dir
       shell: bash
-      run: |
-        lowercase_repo=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
-        echo "PLATFORM=${lowercase_repo}" >> $GITHUB_OUTPUT
+      run: echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT
 
-    # All objects must be lowercase:
-    # https://github.com/jaxxstorm/action-install-gh-release/issues/71#issuecomment-1780893687
-    - name: Set arch name
-      id: set-arch
+    ## Don't cache `latest` version
+    - name: Check the version for caching
+      if: ${{ inputs.cache == 'true' && inputs.version == 'latest' }}
       shell: bash
       run: |
-        if [ "${{ runner.arch }}" == "X86" ]; then
-          echo "ARCH=32bit" >> $GITHUB_OUTPUT
-        elif [ "${{ runner.arch }}" == "X64" ]; then
-          echo "ARCH=64bit" >> $GITHUB_OUTPUT
-        elif [ "${{ runner.arch }}" == "ARM" ]; then
-          echo "ARCH=arm" >> $GITHUB_OUTPUT
-        elif [ "${{ runner.arch }}" == "ARM64" ]; then
-          echo "ARCH=arm64" >> $GITHUB_OUTPUT
-        else
-          echo "Unsupported architecture"
-          exit 1
-        fi
+        echo "'setup-trivy' doesn't currently support caching the `latest` version"
+        echo "read https://github.com/aquasecurity/setup-trivy?tab=readme-ov-file#caching for more details"
 
-    # jaxxstorm/action-install-gh-release uses `cache: enable` instead of boolean value
-    - name: Enable cache
-      id: enable-cache
-      shell: bash
-      run: |
-        if [ "${{ inputs.cache }}" == "true" ]; then
-          if [ "${{ inputs.version }}" == "latest" ]; then
-            echo "Trivy binaries caching for 'latest' tag is not supported"
-          else
-            echo "CACHE=enable" >> $GITHUB_OUTPUT
-          fi
-        fi
+    - name: Restore Trivy binary from cache
+      if: ${{ inputs.cache == 'true' && inputs.version != 'latest' }}
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.binary-dir.outputs.dir }}
+        key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Checkout install script
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: aquasecurity/trivy
+        sparse-checkout: |
+          contrib/install.sh
+        sparse-checkout-cone-mode: false
+        path: trivy
+        fetch-depth: 1
 
     - name: Install Trivy
-      uses: jaxxstorm/action-install-gh-release@v1.10.0
-      with:
-        repo: aquasecurity/trivy
-        tag: ${{ inputs.version }}
-        platform: ${{ steps.set-platform.outputs.PLATFORM }}
-        arch: ${{ steps.set-arch.outputs.ARCH }}
-        cache: ${{ steps.enable-cache.outputs.CACHE }}
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "installing Trivy binary"
+        bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} ${{ inputs.version }}
+
+    ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
+    - name: Add Trivy binary to $GITHUB_PATH
+      shell: bash
+      run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
