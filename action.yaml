@@ -19,21 +19,36 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Check is Trivy already installed?
+      id: check
+      shell: bash
+      run: |
+        if [ "$TRIVY_INSTALLED" == "${{ inputs.version }}-${{ inputs.path }}" ]; then
+          echo "Trivy '${{ inputs.version }}' has already been installed by the current job, skipping reinstalling it again"
+          echo "installed=true" >> $GITHUB_OUTPUT
+        elif [ -n "$TRIVY_INSTALLED" ]; then
+          echo "::warning::Multiple versions of Trivy are installed by the current job, if this was not intended, or they are installed to the same path then this may cause unexpected behaviour."
+          echo "installed=false" >> $GITHUB_OUTPUT
+        else
+          echo "installed=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Binary dir
+      if: ${{ steps.check.outputs.installed == 'false' }}
       id: binary-dir
       shell: bash
       run: echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT
 
     ## Don't cache `latest` version
     - name: Check the version for caching
-      if: ${{ inputs.cache == 'true' && inputs.version == 'latest' }}
+      if: ${{ steps.check.outputs.installed == 'false' && inputs.cache == 'true' && inputs.version == 'latest' }}
       shell: bash
       run: |
         echo "'setup-trivy' doesn't currently support caching the 'latest' version"
         echo "read https://github.com/aquasecurity/setup-trivy?tab=readme-ov-file#caching for more details"
 
     - name: Restore Trivy binary from cache
-      if: ${{ inputs.cache == 'true' && inputs.version != 'latest' }}
+      if: ${{ steps.check.outputs.installed == 'false' && inputs.cache == 'true' && inputs.version != 'latest' }}
       id: cache
       uses: actions/cache@v4
       with:
@@ -41,7 +56,7 @@ runs:
         key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
 
     - name: Checkout install script
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: ${{ steps.check.outputs.installed == 'false' && steps.cache.outputs.cache-hit != 'true' }}
       uses: actions/checkout@v4
       with:
         repository: aquasecurity/trivy
@@ -52,7 +67,7 @@ runs:
         fetch-depth: 1
 
     - name: Install Trivy
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: ${{ steps.check.outputs.installed == 'false' && steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         echo "installing Trivy binary"
@@ -60,5 +75,11 @@ runs:
 
     ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
     - name: Add Trivy binary to $GITHUB_PATH
+      if: ${{ steps.check.outputs.installed == 'false' }}
       shell: bash
       run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
+
+    - name: Set Env Var to indicate Trivy is "'setup-trivy'
+      if: ${{ steps.check.outputs.installed == 'false' }}
+      shell: bash
+      run: echo "TRIVY_INSTALLED=${{ inputs.version}}-${{ inputs.path}}" >> $GITHUB_ENV
