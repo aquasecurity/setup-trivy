@@ -29,7 +29,7 @@ runs:
       if: ${{ inputs.cache == 'true' && inputs.version == 'latest' }}
       shell: bash
       run: |
-        echo "'setup-trivy' doesn't currently support caching the `latest` version"
+        echo "'setup-trivy' doesn't currently support caching the 'latest' version"
         echo "read https://github.com/aquasecurity/setup-trivy?tab=readme-ov-file#caching for more details"
 
     - name: Restore Trivy binary from cache
