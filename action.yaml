@@ -62,3 +62,11 @@ runs:
     - name: Add Trivy binary to $GITHUB_PATH
       shell: bash
       run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
+
+    ## Remove the Trivy Installation Script as this might cause other linters/checks in the calling
+    ## workflow to fail on the unexpected file
+    - name: Remove Trivy Installation Script
+      shell: bash
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        rm -f ./trivy/contrib/install.sh
