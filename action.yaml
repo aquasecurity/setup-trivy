@@ -15,6 +15,15 @@ inputs:
     description: 'Used to specify whether caching is needed. Set to false, if you would like to disable caching.'
     required: false
     default: 'false'
+  token:
+    description: >
+      Access token used to check out the Trivy repository.
+      The token is required when using GitHub Enterprise Server (GHES).
+      https://github.com/actions/create-github-app-token can be used to obtain such a token.
+      The token should be limited to read access only for public repositories.
+      See more details in https://github.com/aquasecurity/setup-trivy/issues/10
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -50,6 +59,11 @@ runs:
         sparse-checkout-cone-mode: false
         path: trivy
         fetch-depth: 1
+        ## We have to explicitly set GitHub server to avoid it being overwritten for GHES
+        ## cf. https://github.com/aquasecurity/setup-trivy/issues/10
+        github-server-url: 'https://github.com'
+        token: ${{ inputs.token }}
+
 
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
