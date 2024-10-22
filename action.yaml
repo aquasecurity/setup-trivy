@@ -53,7 +53,6 @@ runs:
       ## Install Trivy using install script,
       ## Copy the `contrib` directory to the directory with the binary
       ## Remove the `trivy` directory produced by the checkout step, as it may cause errors in linters/checks in the calling code.
-
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
