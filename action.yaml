@@ -46,27 +46,23 @@ runs:
       with:
         repository: aquasecurity/trivy
         sparse-checkout: |
-          contrib/install.sh
-        sparse-checkout-cone-mode: false
+          contrib
         path: trivy
         fetch-depth: 1
 
+      ## Install Trivy using install script,
+      ## Copy the `contrib` directory to the directory with the binary
+      ## Remove the `trivy` directory produced by the checkout step, as it may cause errors in linters/checks in the calling code.
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         echo "installing Trivy binary"
         bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} ${{ inputs.version }}
+        cp -r ./trivy/contrib ${{ steps.binary-dir.outputs.dir }}/contrib
+        rm -rf ./trivy
 
     ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
     - name: Add Trivy binary to $GITHUB_PATH
       shell: bash
       run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
-
-    ## Remove the Trivy Installation Script as this might cause other linters/checks in the calling
-    ## workflow to fail on the unexpected file
-    - name: Remove Trivy Installation Script
-      shell: bash
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: |
-        rm -f ./trivy/contrib/install.sh
