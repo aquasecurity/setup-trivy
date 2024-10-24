@@ -7,7 +7,7 @@ Set up your GitHub Actions workflow with a specific version of [Trivy](https://g
 # ...
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@v0.2.0
+    uses: aquasecurity/setup-trivy@v0.2.2
 ```
 
 ## Install a specific Trivy version
@@ -15,7 +15,7 @@ steps:
 # ...
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@v0.2.0
+    uses: aquasecurity/setup-trivy@v0.2.2
     with:
       version: v0.56.2
 ```
@@ -34,7 +34,7 @@ If you want to enable caching for Linux and MacOS runners, set the `cache` input
 ```yaml
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@v0.2.0
+    uses: aquasecurity/setup-trivy@v0.2.2
     with:
       version: v0.56.2
       cache: true
@@ -50,7 +50,7 @@ To enable caching for Windows runner or if you need to change the Trivy installa
 ```yaml
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@v0.2.0
+    uses: aquasecurity/setup-trivy@v0.2.2
     with:
       version: v0.56.2
       cache: true
@@ -67,7 +67,7 @@ To properly install Trivy, you need to populate `token` from a secret or another
 ```yaml
 steps:
   - name: Install Trivy
-    uses: aquasecurity/setup-trivy@v0.2.0
+    uses: aquasecurity/setup-trivy@v0.2.2
     with:
       version: v0.56.2
       cache: true
