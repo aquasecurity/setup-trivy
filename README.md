@@ -17,7 +17,7 @@ steps:
   - name: Install Trivy
     uses: aquasecurity/setup-trivy@v0.2.0
     with:
-      version: v0.56.1
+      version: v0.56.2
 ```
 
 ## Caching
@@ -36,7 +36,7 @@ steps:
   - name: Install Trivy
     uses: aquasecurity/setup-trivy@v0.2.0
     with:
-      version: v0.56.1
+      version: v0.56.2
       cache: true
 ```
 
@@ -52,7 +52,7 @@ steps:
   - name: Install Trivy
     uses: aquasecurity/setup-trivy@v0.2.0
     with:
-      version: v0.56.1
+      version: v0.56.2
       cache: true
       path: "./bins"
 ```
@@ -69,7 +69,7 @@ steps:
   - name: Install Trivy
     uses: aquasecurity/setup-trivy@v0.2.0
     with:
-      version: v0.56.1
+      version: v0.56.2
       cache: true
       token: ${{ secrets.GITHUB_PAT }}
 ```
