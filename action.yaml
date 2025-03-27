@@ -26,6 +26,14 @@ inputs:
     ## ${{ github.token }} is default value for actions/checkout
     ## cf. https://github.com/actions/checkout/blob/eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871/action.yml#L24
     default: ${{ github.token }}
+  github-server-url:
+    description: >
+      The base URL for the GitHub instance to clone aquasecurity/trivy from.
+      Defaults to public https://github.com, but can be optionally set to ${{ github.server_url }} on GHES.
+    required: false
+    ## Note: we explicitly set the default to public rather than the current server api (in case of private GHES)
+    ## cf. https://github.com/aquasecurity/setup-trivy/issues/10
+    default: 'https://github.com'
 
 runs:
   using: 'composite'
@@ -60,11 +68,8 @@ runs:
           contrib
         path: trivy
         fetch-depth: 1
-        ## We have to explicitly set GitHub server to avoid it being overwritten for GHES
-        ## cf. https://github.com/aquasecurity/setup-trivy/issues/10
-        github-server-url: 'https://github.com'
+        github-server-url: ${{ inputs.github-server-url }}
         token: ${{ inputs.token }}
-
 
       ## Install Trivy using install script,
       ## Copy the `contrib` directory to the directory with the binary
