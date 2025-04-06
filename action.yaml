@@ -27,12 +27,11 @@ inputs:
     ## cf. https://github.com/actions/checkout/blob/eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871/action.yml#L24
     default: ${{ github.token }}
   github-server-url:
-    description: >
-      The base URL for the GitHub instance to clone aquasecurity/trivy from.
-      Defaults to public https://github.com, but can be optionally set to ${{ github.server_url }} on GHES.
+    description: The base URL for the GitHub instance to clone aquasecurity/trivy from. Defaults to public https://github.com
     required: false
     ## Note: we explicitly set the default to public rather than the current server api (in case of private GHES)
-    ## cf. https://github.com/aquasecurity/setup-trivy/issues/10
+    ## but it can optionally be set to '${{ github.server_url }}' on GHES if the repository has been mirrored (e.g., via actions/actions-sync).
+    ## Ref. https://github.com/aquasecurity/setup-trivy/issues/10 and https://github.com/aquasecurity/setup-trivy/pull/16
     default: 'https://github.com'
 
 runs:
