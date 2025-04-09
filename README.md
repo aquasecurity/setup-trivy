@@ -73,3 +73,17 @@ steps:
       cache: true
       token: ${{ secrets.GITHUB_PAT }}
 ```
+
+## Install Trivy with non-default github-server-url
+In some cases, GHES deployments are isolated and don't use GitHub Connect.
+It uses the actions-sync process to mirror allowed actions into the GHES instance.
+
+Set `github-server-url` to change the mirror of Trivy repository.
+```yaml
+steps:
+  - name: Install Trivy
+    uses: aquasecurity/setup-trivy@v0.2.3
+    with:
+      version: v0.61.0
+      github-server-url: 'https://example.com'
+```
