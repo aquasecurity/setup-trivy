@@ -78,7 +78,7 @@ runs:
       shell: bash
       run: |
         echo "installing Trivy binary"
-        bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} ${{ inputs.version }}
+        bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} -c gh-action ${{ inputs.version }}
         cp -r ./trivy/contrib ${{ steps.binary-dir.outputs.dir }}/contrib
         rm -rf ./trivy
 
