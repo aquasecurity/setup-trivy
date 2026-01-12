@@ -53,7 +53,7 @@ runs:
     - name: Restore Trivy binary from cache
       if: ${{ inputs.cache == 'true' && inputs.version != 'latest' }}
       id: cache
-      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
       with:
         path: ${{ steps.binary-dir.outputs.dir }}
         key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
@@ -86,3 +86,14 @@ runs:
     - name: Add Trivy binary to $GITHUB_PATH
       shell: bash
       run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
+
+    ## If one of the steps after setup-trivy fails,
+    ## we won't save the binary to the cache because the step after won't be run.
+    ## So we need to save the binary right after installation.
+    ## cf. https://github.com/aquasecurity/setup-trivy/issues/18
+    - name: Save Trivy binary to cache
+      if:  ${{ inputs.cache == 'true' && inputs.version != 'latest' && steps.cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      with:
+        path: ${{ steps.binary-dir.outputs.dir }}
+        key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
