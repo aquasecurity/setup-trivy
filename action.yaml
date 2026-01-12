@@ -91,7 +91,7 @@ runs:
     ## we won't save the binary to the cache because the step after won't be run.
     ## So we need to save the binary right after installation.
     ## cf. https://github.com/aquasecurity/setup-trivy/issues/18
-    - name: Save Trivy binary from cache
+    - name: Save Trivy binary to cache
       if:  ${{ inputs.cache == 'true' && inputs.version != 'latest' && steps.cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
       with:
