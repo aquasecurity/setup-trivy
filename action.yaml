@@ -69,7 +69,7 @@ runs:
         sparse-checkout: |
           contrib
         path: trivy
-        fetch-depth: 0
+        fetch-depth: 1
         ref: 75c4dc0f45c5d7ffd05ae26df1e0c666787bdf2a # main (with -c flag support)
         github-server-url: ${{ inputs.github-server-url }}
         token: ${{ inputs.token }}
