@@ -40,7 +40,9 @@ runs:
     - name: Binary dir
       id: binary-dir
       shell: bash
-      run: echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+      run: echo "dir=${INPUT_PATH}/trivy-bin" >> $GITHUB_OUTPUT
 
     ## Don't cache `latest` version
     - name: Check the version for caching
@@ -80,16 +82,21 @@ runs:
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
+      env:
+        BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
+        TRIVY_VERSION: ${{ inputs.version }}
       run: |
         echo "installing Trivy binary"
-        bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} -c setup-trivy ${{ inputs.version }}
-        cp -r ./trivy/contrib ${{ steps.binary-dir.outputs.dir }}/contrib
+        bash ./trivy/contrib/install.sh -b "${BINARY_DIR}" -c setup-trivy "${TRIVY_VERSION}"
+        cp -r ./trivy/contrib "${BINARY_DIR}/contrib"
         rm -rf ./trivy
 
     ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
     - name: Add Trivy binary to $GITHUB_PATH
       shell: bash
-      run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
+      env:
+        BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
+      run: echo "${BINARY_DIR}" >> $GITHUB_PATH
 
     ## If one of the steps after setup-trivy fails,
     ## we won't save the binary to the cache because the step after won't be run.
