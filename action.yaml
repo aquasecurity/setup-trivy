@@ -42,7 +42,7 @@ runs:
       shell: bash
       env:
         INPUT_PATH: ${{ inputs.path }}
-      run: echo "dir=${INPUT_PATH}/trivy-bin" >> $GITHUB_OUTPUT
+      run: echo "dir=${INPUT_PATH}/trivy-bin" >> "$GITHUB_OUTPUT"
 
     ## Don't cache `latest` version
     - name: Check the version for caching
@@ -96,7 +96,7 @@ runs:
       shell: bash
       env:
         BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
-      run: echo "${BINARY_DIR}" >> $GITHUB_PATH
+      run: echo "${BINARY_DIR}" >> "$GITHUB_PATH"
 
     ## If one of the steps after setup-trivy fails,
     ## we won't save the binary to the cache because the step after won't be run.
