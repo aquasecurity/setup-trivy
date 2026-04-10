@@ -10,7 +10,7 @@ inputs:
   path:
     description: 'Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir ("$HOME/.local/bin/trivy-bin" by default)'
     required: false
-    default: '$HOME/.local/bin'
+    default: ''
   cache:
     description: 'Used to specify whether caching is needed. Set to false, if you would like to disable caching.'
     required: false
@@ -42,7 +42,7 @@ runs:
       shell: bash
       env:
         INPUT_PATH: ${{ inputs.path }}
-      run: echo "dir=${INPUT_PATH}/trivy-bin" >> "$GITHUB_OUTPUT"
+      run: echo "dir=${INPUT_PATH:-$HOME/.local/bin}/trivy-bin" >> "$GITHUB_OUTPUT"
 
     ## Don't cache `latest` version
     - name: Check the version for caching
