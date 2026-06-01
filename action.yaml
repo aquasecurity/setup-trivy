@@ -42,7 +42,15 @@ runs:
       shell: bash
       env:
         INPUT_PATH: ${{ inputs.path }}
-      run: echo "dir=${INPUT_PATH:-$HOME/.local/bin}/trivy-bin" >> "$GITHUB_OUTPUT"
+      run: |
+        # `path` is passed via env to avoid script injection, which means shell
+        # variables and `~` inside it are NOT expanded. Fail early with a clear
+        # message instead of silently creating a directory literally named `$HOME`.
+        if [[ "${INPUT_PATH}" == *'$'* || "${INPUT_PATH}" == '~'* ]]; then
+          echo "::error::The 'path' input must be a literal path. Shell variables (e.g. \$HOME, \$USER) and '~' are not expanded. Use an absolute or relative path, or leave 'path' empty to use the default (\$HOME/.local/bin)." >&2
+          exit 1
+        fi
+        echo "dir=${INPUT_PATH:-$HOME/.local/bin}/trivy-bin" >> "$GITHUB_OUTPUT"
 
     ## Don't cache `latest` version
     - name: Check the version for caching
