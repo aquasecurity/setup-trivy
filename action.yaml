@@ -8,7 +8,12 @@ inputs:
     required: false
     default: 'latest'
   path:
-    description: 'Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir ("$HOME/.local/bin/trivy-bin" by default)'
+    description: >
+      Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir
+      ("$HOME/.local/bin/trivy-bin" by default).
+      Must be a literal path: shell variables (e.g. $HOME, $RUNNER_TEMP) and "~" are NOT
+      expanded. Use a GitHub expression such as ${{ runner.temp }} instead, or a relative
+      path like "./bins".
     required: false
     default: ''
   cache:
@@ -43,13 +48,23 @@ runs:
       env:
         INPUT_PATH: ${{ inputs.path }}
       run: |
-        # `path` is passed via env to avoid script injection, which means shell
-        # variables and `~` inside it are NOT expanded. Fail early with a clear
-        # message instead of silently creating a directory literally named `$HOME`.
-        if [[ "${INPUT_PATH}" == *'$'* || "${INPUT_PATH}" == '~'* ]]; then
-          echo "::error::The 'path' input must be a literal path. Shell variables (e.g. \$HOME, \$USER) and '~' are not expanded. Use an absolute or relative path, or leave 'path' empty to use the default (\$HOME/.local/bin)." >&2
-          exit 1
-        fi
+        # `path` is passed via env to avoid script injection. As a result, shell
+        # variables (e.g. $HOME) and `~` inside it are NOT expanded. We validate it to:
+        #   1. fail early with a clear message instead of silently creating a directory
+        #      literally named `$HOME`;
+        #   2. reject newlines, which could otherwise inject extra lines into the
+        #      `$GITHUB_OUTPUT` file (and thus poison the `dir` output).
+        case "${INPUT_PATH}" in
+          *'$'* | *'~'*)
+            echo "::error::The 'path' input must be a literal path. Shell variables (e.g. \$HOME, \$USER) and '~' are not expanded. Use a GitHub expression like \${{ runner.temp }}, a relative path, or leave 'path' empty to use the default (\$HOME/.local/bin)." >&2
+            exit 1
+            ;;
+          *[$'\n\r']*)
+            echo "::error::The 'path' input must not contain newline characters." >&2
+            exit 1
+            ;;
+        esac
+        # Default path. Keep `$HOME/.local/bin` in sync with the `path` input description above.
         echo "dir=${INPUT_PATH:-$HOME/.local/bin}/trivy-bin" >> "$GITHUB_OUTPUT"
 
     ## Don't cache `latest` version
