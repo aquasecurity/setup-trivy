@@ -8,9 +8,14 @@ inputs:
     required: false
     default: 'latest'
   path:
-    description: 'Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir ("$HOME/.local/bin/trivy-bin" by default)'
+    description: >
+      Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir
+      ("$HOME/.local/bin/trivy-bin" by default).
+      Must be a literal path: shell variables (e.g. $HOME, $RUNNER_TEMP) and "~" are NOT
+      expanded. Use a GitHub expression such as ${{ runner.temp }} instead, or a relative
+      path like "./bins".
     required: false
-    default: '$HOME/.local/bin'
+    default: ''
   cache:
     description: 'Used to specify whether caching is needed. Set to false, if you would like to disable caching.'
     required: false
@@ -40,7 +45,27 @@ runs:
     - name: Binary dir
       id: binary-dir
       shell: bash
-      run: echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+      run: |
+        # `path` is passed via env to avoid script injection. As a result, shell
+        # variables (e.g. $HOME) and `~` inside it are NOT expanded. We validate it to:
+        #   1. fail early with a clear message instead of silently creating a directory
+        #      literally named `$HOME`;
+        #   2. reject newlines, which could otherwise inject extra lines into the
+        #      `$GITHUB_OUTPUT` file (and thus poison the `dir` output).
+        case "${INPUT_PATH}" in
+          *'$'* | *'~'*)
+            echo "::error::The 'path' input must be a literal path. Shell variables (e.g. \$HOME, \$USER) and '~' are not expanded. Use a GitHub expression like \${{ runner.temp }}, a relative path, or leave 'path' empty to use the default (\$HOME/.local/bin)." >&2
+            exit 1
+            ;;
+          *[$'\n\r']*)
+            echo "::error::The 'path' input must not contain newline characters." >&2
+            exit 1
+            ;;
+        esac
+        # Default path. Keep `$HOME/.local/bin` in sync with the `path` input description above.
+        echo "dir=${INPUT_PATH:-$HOME/.local/bin}/trivy-bin" >> "$GITHUB_OUTPUT"
 
     ## Don't cache `latest` version
     - name: Check the version for caching
@@ -80,16 +105,21 @@ runs:
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
+      env:
+        BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
+        TRIVY_VERSION: ${{ inputs.version }}
       run: |
         echo "installing Trivy binary"
-        bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} -c setup-trivy ${{ inputs.version }}
-        cp -r ./trivy/contrib ${{ steps.binary-dir.outputs.dir }}/contrib
+        bash ./trivy/contrib/install.sh -b "${BINARY_DIR}" -c setup-trivy "${TRIVY_VERSION}"
+        cp -r ./trivy/contrib "${BINARY_DIR}/contrib"
         rm -rf ./trivy
 
     ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
     - name: Add Trivy binary to $GITHUB_PATH
       shell: bash
-      run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH
+      env:
+        BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
+      run: echo "${BINARY_DIR}" >> "$GITHUB_PATH"
 
     ## If one of the steps after setup-trivy fails,
     ## we won't save the binary to the cache because the step after won't be run.

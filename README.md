@@ -57,6 +57,10 @@ steps:
       path: "./bins"
 ```
 
+> [!IMPORTANT]
+> `path` must be a **literal** path. Shell variables (e.g. `$HOME`, `$RUNNER_TEMP`) and `~` are **not** expanded and will fail the action.
+> Use a GitHub expression that is resolved before the step runs instead, for example `path: ${{ runner.temp }}/trivy`, or a relative path like `./bins`.
+
 ## Install Trivy with non-default token
 There are cases when `github.token` (default value for `actions/checkout`) contains an invalid token for `http://github.com`.
 One of example for this when using GitHub Enterprise Server (GHES).
