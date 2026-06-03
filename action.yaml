@@ -12,8 +12,8 @@ inputs:
       Path in runner to install Trivy. Trivy will be installed in "<path>/trivy-bin" dir
       ("$HOME/.local/bin/trivy-bin" by default).
       Must be a literal path: shell variables (e.g. $HOME, $RUNNER_TEMP) and "~" are NOT
-      expanded. Use a GitHub expression such as ${{ runner.temp }} instead, or a relative
-      path like "./bins".
+      expanded. Use a GitHub expression that is resolved before the step runs, or a
+      relative path like "./bins".
     required: false
     default: ''
   cache:
@@ -56,7 +56,7 @@ runs:
         #      `$GITHUB_OUTPUT` file (and thus poison the `dir` output).
         case "${INPUT_PATH}" in
           *'$'* | *'~'*)
-            echo "::error::The 'path' input must be a literal path. Shell variables (e.g. \$HOME, \$USER) and '~' are not expanded. Use a GitHub expression like \${{ runner.temp }}, a relative path, or leave 'path' empty to use the default (\$HOME/.local/bin)." >&2
+            echo "::error::The 'path' input must be a literal path. Shell variables (e.g. \$HOME, \$USER) and '~' are not expanded. Use a GitHub expression that is resolved before the step runs, a relative path, or leave 'path' empty to use the default (\$HOME/.local/bin)." >&2
             exit 1
             ;;
           *[$'\n\r']*)
