@@ -88,6 +88,14 @@ jobs:
   # are never silently expanded (regression guard for the validation added in
   # https://github.com/aquasecurity/setup-trivy/pull/33). We expect the install
   # step to FAIL and assert that explicitly.
+  #
+  # The error text printed by the action ("must be a literal path") cannot be
+  # captured from a `uses:` step — only `outcome` is exposed, not stdout/stderr.
+  # So a bare `outcome == failure` check would also pass if the action failed for
+  # an unrelated reason (e.g. the #37 load failure), giving a false green. The
+  # positive-control step below closes that gap: it installs with a valid path
+  # and MUST succeed, so the job can only pass when the action actually loads and
+  # then rejects the invalid paths.
   reject-invalid-path:
     name: Reject invalid path (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -101,6 +109,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      # Positive control: a valid path must load and succeed. If the action is
+      # broken (e.g. an invalid expression in action.yaml), this step fails and
+      # so does the job, preventing a false green from the steps below.
+      - name: Install Trivy with a valid path (control)
+        uses: ./
+        with:
+          version: v0.71.0
+          path: ./control-bin
 
       - name: Install Trivy with a shell variable in path
         id: invalid-var
@@ -129,4 +146,4 @@ jobs:
             echo "::error::Expected the action to reject a path with a tilde, but it succeeded."
             exit 1
           fi
-          echo "Action correctly rejected the invalid paths."
+          echo "Action loaded correctly and rejected the invalid paths."
