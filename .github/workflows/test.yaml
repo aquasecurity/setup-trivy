@@ -36,6 +36,49 @@ jobs:
         shell: bash
         run: trivy --version
 
+  # The 'version-file' input must resolve the Trivy version from a file and
+  # take precedence over 'version'. We cover both the asdf '.tool-versions'
+  # layout and a plain version file.
+  version-file:
+    name: Install from version-file (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Create a .tool-versions file
+        shell: bash
+        run: printf 'trivy v0.71.0\n' > .tool-versions
+
+      - name: Install Trivy from .tool-versions
+        uses: ./
+        with:
+          version-file: .tool-versions
+
+      - name: Verify the version-file version is installed
+        shell: bash
+        run: trivy --version | grep '0.71.0'
+
+      - name: Create a plain version file
+        shell: bash
+        run: printf 'v0.71.0\n' > trivy.version
+
+      - name: Install Trivy from a plain version file
+        uses: ./
+        with:
+          version-file: trivy.version
+
+      - name: Verify the plain version-file version is installed
+        shell: bash
+        run: trivy --version | grep '0.71.0'
+
   cache:
     name: Install with cache (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

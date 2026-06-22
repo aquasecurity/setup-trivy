@@ -20,6 +20,20 @@ steps:
       version: v0.68.2
 ```
 
+## Install a Trivy version from a file
+Use `version-file` to read the Trivy version from a file instead of hard-coding it in the workflow.
+It supports the asdf [`.tool-versions`](https://asdf-vm.com/manage/configuration.html#tool-versions) layout (the `trivy` entry) and plain version files.
+The version is used as-is, so include the leading `v` if the release tag has one (e.g. `trivy v0.68.2`).
+`version-file` takes precedence over `version` when both are set.
+
+```yaml
+steps:
+  - name: Install Trivy
+    uses: aquasecurity/setup-trivy@e07451d2e059ed86c2870430ea286b3a9e0bf241
+    with:
+      version-file: .tool-versions
+```
+
 ## Caching
 `setup-trivy` uses `actions/cache` under the hood but requires less configuration settings. 
 This caches the trivy binary so that next time you run, instead of downloading the binary it is loaded from the cache. This is *not* the same cache as other Trivy artifacts such as `trivy-db` and `trivy-java-db`.
