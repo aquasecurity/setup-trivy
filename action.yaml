@@ -83,36 +83,68 @@ runs:
         path: ${{ steps.binary-dir.outputs.dir }}
         key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
 
-    ## Security: Pin to a specific commit hash (not tag) to prevent supply chain attacks.
-    ## The install script is stable and can install different Trivy versions.
-    ## Update this ref as needed after reviewing changes to contrib/install.sh
-    - name: Checkout install script
-      if: steps.cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      with:
-        repository: aquasecurity/trivy
-        sparse-checkout: |
-          contrib
-        path: trivy
-        fetch-depth: 1
-        ref: 75c4dc0f45c5d7ffd05ae26df1e0c666787bdf2a # main (with -c flag support)
-        github-server-url: ${{ inputs.github-server-url }}
-        token: ${{ inputs.token }}
-
-      ## Install Trivy using install script,
-      ## Copy the `contrib` directory to the directory with the binary
-      ## Remove the `trivy` directory produced by the checkout step, as it may cause errors in linters/checks in the calling code.
+    ## Trivy is downloaded from its release page rather than git-cloned.
+    ##
+    ## The previous implementation checked out aquasecurity/trivy to run
+    ## contrib/install.sh. actions/checkout attaches `token` as an Authorization
+    ## header unconditionally, and on third-party CI that implements the Actions
+    ## protocol (Gitea Actions, Forgejo, act), `github.token` is that forge's own
+    ## token, not a GitHub one. github.com answers 401 rather than serving the
+    ## public repository anonymously, git falls back to prompting for a username,
+    ## and the step fails with:
+    ##
+    ##   fatal: could not read Username for 'https://github.com'
+    ##
+    ## Since the composite steps after this one are then skipped, the caller's
+    ## scan is silently skipped too and the job fails having scanned nothing.
+    ##
+    ## The release archive carries both the binary and contrib/, so nothing is
+    ## lost, and it is served over plain HTTPS with no credential involved. It is
+    ## verified against the checksums file published alongside it.
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       env:
         BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
         TRIVY_VERSION: ${{ inputs.version }}
+        SERVER_URL: ${{ inputs.github-server-url }}
       run: |
-        echo "installing Trivy binary"
-        bash ./trivy/contrib/install.sh -b "${BINARY_DIR}" -c setup-trivy "${TRIVY_VERSION}"
-        cp -r ./trivy/contrib "${BINARY_DIR}/contrib"
-        rm -rf ./trivy
+        set -euo pipefail
+
+        ver="${TRIVY_VERSION}"
+        if [ "${ver}" = "latest" ]; then
+          ## Resolved through the release redirect rather than the API, which
+          ## would need a token to avoid unauthenticated rate limits.
+          ver="$(curl -sfLo /dev/null -w '%{url_effective}' \
+            "${SERVER_URL}/aquasecurity/trivy/releases/latest" | sed 's|.*/tag/||')"
+        fi
+        ver="${ver#v}"
+
+        case "$(uname -s)/$(uname -m)" in
+          Linux/x86_64)               asset='Linux-64bit'   ;;
+          Linux/aarch64|Linux/arm64)  asset='Linux-ARM64'   ;;
+          Darwin/x86_64)              asset='macOS-64bit'   ;;
+          Darwin/arm64)               asset='macOS-ARM64'   ;;
+          *)
+            echo "::error::unsupported platform $(uname -s)/$(uname -m)" >&2
+            exit 1
+            ;;
+        esac
+
+        base="${SERVER_URL}/aquasecurity/trivy/releases/download/v${ver}"
+        tarball="trivy_${ver}_${asset}.tar.gz"
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "${tmp}"' EXIT
+
+        echo "installing Trivy ${ver} (${asset})"
+        curl -sfL "${base}/${tarball}"                 -o "${tmp}/${tarball}"
+        curl -sfL "${base}/trivy_${ver}_checksums.txt" -o "${tmp}/checksums.txt"
+
+        ## An unverified binary here would run against every caller's source.
+        ( cd "${tmp}" && grep " ${tarball}\$" checksums.txt | sha256sum -c - )
+
+        mkdir -p "${BINARY_DIR}"
+        tar -xzf "${tmp}/${tarball}" -C "${BINARY_DIR}" trivy contrib
 
     ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
     - name: Add Trivy binary to $GITHUB_PATH
