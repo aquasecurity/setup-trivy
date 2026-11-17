@@ -93,7 +93,9 @@ runs:
         repository: aquasecurity/trivy
         sparse-checkout: |
           contrib
-        path: trivy
+        ## Not `trivy`: the caller's workspace may already have a directory with
+        ## that name, and checking out or removing it would destroy its contents.
+        path: .setup-trivy
         fetch-depth: 1
         ref: 75c4dc0f45c5d7ffd05ae26df1e0c666787bdf2a # main (with -c flag support)
         github-server-url: ${{ inputs.github-server-url }}
@@ -102,7 +104,7 @@ runs:
 
       ## Install Trivy using install script,
       ## Copy the `contrib` directory to the directory with the binary
-      ## Remove the `trivy` directory produced by the checkout step, as it may cause errors in linters/checks in the calling code.
+      ## Remove the `.setup-trivy` directory produced by the checkout step, as it may cause errors in linters/checks in the calling code.
     - name: Install Trivy
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
@@ -111,9 +113,9 @@ runs:
         TRIVY_VERSION: ${{ inputs.version }}
       run: |
         echo "installing Trivy binary"
-        bash ./trivy/contrib/install.sh -b "${BINARY_DIR}" -c setup-trivy "${TRIVY_VERSION}"
-        cp -r ./trivy/contrib "${BINARY_DIR}/contrib"
-        rm -rf ./trivy
+        bash ./.setup-trivy/contrib/install.sh -b "${BINARY_DIR}" -c setup-trivy "${TRIVY_VERSION}"
+        cp -r ./.setup-trivy/contrib "${BINARY_DIR}/contrib"
+        rm -rf ./.setup-trivy
 
     ## Add the Trivy binary, retrieved from cache or installed by a script, to $GITHUB_PATH
     - name: Add Trivy binary to $GITHUB_PATH
