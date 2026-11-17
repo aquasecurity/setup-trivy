@@ -147,3 +147,44 @@ jobs:
             exit 1
           fi
           echo "Action loaded correctly and rejected the invalid paths."
+
+  # The caller's own `trivy` directory must survive the install (regression
+  # guard for https://github.com/aquasecurity/setup-trivy/issues/45), and the
+  # action must not leave its checkout of the install script behind.
+  keep-trivy-dir:
+    name: Keep the caller's trivy directory (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Create a trivy directory in the workspace
+        shell: bash
+        run: |
+          mkdir trivy
+          echo "keep me" > trivy/keep.txt
+
+      - name: Install Trivy
+        uses: ./
+        with:
+          version: v0.71.0
+
+      - name: Assert the trivy directory is unchanged
+        shell: bash
+        run: |
+          trivy --version
+          if [ "$(cat trivy/keep.txt 2>/dev/null)" != "keep me" ]; then
+            echo "::error::The action removed or changed the workspace's trivy directory."
+            exit 1
+          fi
+          if [ -e .setup-trivy ]; then
+            echo "::error::The action left its .setup-trivy checkout in the workspace."
+            exit 1
+          fi
